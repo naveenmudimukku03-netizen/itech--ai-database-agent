@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Database Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg-void: #060b14;
+  --bg-deep: #0a1220;
+  --bg-panel: #0d1a2e;
+  --bg-card: #111e33;
+  --bg-hover: #162440;
+  --bg-glass: rgba(13,26,46,0.7);
+  --border-dim: rgba(0,212,255,0.08);
+  --border-mid: rgba(0,212,255,0.18);
+  --border-bright: rgba(0,212,255,0.4);
+  --cyan: #00d4ff;
+  --cyan-glow: rgba(0,212,255,0.15);
+  --cyan-dim: rgba(0,212,255,0.6);
+  --green: #00ff88;
+  --green-dim: rgba(0,255,136,0.6);
+  --amber: #ffaa00;
+  --red: #ff4466;
+  --purple: #a855f7;
+  --text-primary: #e8f4fd;
+  --text-secondary: #7a9bb5;
+  --text-muted: #3d5a73;
+  --font-ui: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --sidebar-w: 280px;
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg-void);color:var(--text-primary);font-family:var(--font-ui)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-mid);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-bright)}
+
+/* ─── LAYOUT ─── */
+.app{display:flex;height:100vh;width:100vw;position:relative;overflow:hidden}
+
+/* ─── BACKGROUND GRID ─── */
+.bg-grid{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);
+  background-size:48px 48px}
+.bg-pulse{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.pulse-line{position:absolute;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:sweep 6s infinite linear;opacity:0}
+.pulse-line:nth-child(1){top:20%;animation-delay:0s;width:60%}
+.pulse-line:nth-child(2){top:45%;animation-delay:2s;width:40%}
+.pulse-line:nth-child(3){top:70%;animation-delay:4s;width:55%}
+@keyframes sweep{0%{left:-100%;opacity:0}10%{opacity:0.4}80%{opacity:0.4}100%{left:120%;opacity:0}}
+
+/* ─── SIDEBAR ─── */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;display:flex;flex-direction:column;
+  background:var(--bg-glass);backdrop-filter:blur(20px);
+  border-right:1px solid var(--border-dim);position:relative;z-index:10;
+  transition:transform 0.3s cubic-bezier(0.4,0,0.2,1)}
+
+.sidebar-header{padding:20px 18px 16px;border-bottom:1px solid var(--border-dim)}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.logo-icon{width:36px;height:36px;border-radius:9px;
+  background:linear-gradient(135deg,rgba(0,212,255,0.2),rgba(168,85,247,0.2));
+  border:1px solid var(--border-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-icon svg{width:20px;height:20px}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-0.3px;color:var(--text-primary)}
+.logo-sub{font-size:10px;font-family:var(--font-mono);color:var(--cyan-dim);letter-spacing:1px;text-transform:uppercase}
+.version-badge{font-size:9px;font-family:var(--font-mono);background:rgba(0,212,255,0.1);
+  color:var(--cyan);border:1px solid var(--border-mid);border-radius:4px;padding:2px 6px;margin-top:4px;display:inline-block}
+
+.btn-new{margin:14px 14px 0;display:flex;align-items:center;gap:8px;padding:9px 14px;
+  background:rgba(0,212,255,0.08);border:1px solid var(--border-mid);border-radius:var(--radius);
+  color:var(--cyan);font-size:13px;font-weight:500;cursor:pointer;
+  transition:all 0.2s;width:calc(100% - 28px)}
+.btn-new:hover{background:rgba(0,212,255,0.15);border-color:var(--border-bright);transform:translateY(-1px)}
+.btn-new svg{width:15px;height:15px;flex-shrink:0}
+
+.sidebar-section{padding:14px 14px 6px;font-size:10px;font-family:var(--font-mono);
+  color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase}
+.chat-list{overflow-y:auto;flex:1;padding:0 10px}
+.chat-item{padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:2px;
+  transition:background 0.15s;display:flex;align-items:center;gap:8px}
+.chat-item:hover,.chat-item.active{background:rgba(0,212,255,0.07)}
+.chat-item.active{border-left:2px solid var(--cyan)}
+.chat-item svg{width:13px;height:13px;color:var(--text-muted);flex-shrink:0}
+.chat-item-text{font-size:12.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item-time{font-size:10px;font-family:var(--font-mono);color:var(--text-muted);margin-left:auto;flex-shrink:0}
+
+.db-status{margin:10px 14px;padding:12px 14px;
+  background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.12);border-radius:var(--radius);flex-shrink:0}
+.db-status-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.db-label{font-size:10px;font-family:var(--font-mono);color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
+.db-status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
+.db-name{font-size:12px;font-family:var(--font-mono);color:var(--green-dim);margin-bottom:4px}
+.db-meta{font-size:10px;color:var(--text-muted);display:flex;gap:12px}
+.db-meta span{display:flex;align-items:center;gap:4px}
+
+.sidebar-footer{padding:12px 14px;border-top:1px solid var(--border-dim);flex-shrink:0}
+.footer-row{display:flex;align-items:center;gap:8px}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.user-name{font-size:12.5px;font-weight:500;color:var(--text-secondary)}
+.user-role{font-size:10px;color:var(--text-muted)}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;z-index:5}
+
+/* ─── TOP BAR ─── */
+.topbar{display:flex;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border-dim);
+  background:rgba(6,11,20,0.8);backdrop-filter:blur(10px);flex-shrink:0;gap:12px;min-height:54px}
+.menu-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-secondary);cursor:pointer;display:none;
+  align-items:center;justify-content:center;transition:all 0.2s}
+.menu-btn:hover{border-color:var(--border-mid);color:var(--text-primary)}
+.topbar-title{font-size:14px;font-weight:600;color:var(--text-primary)}
+.topbar-model{font-size:11px;font-family:var(--font-mono);color:var(--cyan-dim);
+  background:rgba(0,212,255,0.08);border:1px solid var(--border-dim);border-radius:5px;padding:3px 8px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.topbar-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;
+  align-items:center;justify-content:center;transition:all 0.2s}
+.topbar-btn:hover{border-color:var(--border-mid);color:var(--cyan)}
+.topbar-btn svg{width:14px;height:14px}
+
+/* ─── CHAT AREA ─── */
+.chat-wrap{flex:1;overflow-y:auto;padding:24px 0;display:flex;flex-direction:column;gap:0;scroll-behavior:smooth}
+
+/* ─── WELCOME ─── */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;padding:40px 24px;text-align:center;min-height:0}
+.welcome-icon{width:64px;height:64px;border-radius:18px;
+  background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(168,85,247,0.15));
+  border:1px solid var(--border-mid);display:flex;align-items:center;justify-content:center;margin-bottom:20px;
+  animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.welcome-icon svg{width:32px;height:32px;color:var(--cyan)}
+.welcome h2{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--text-primary),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.welcome p{font-size:14px;color:var(--text-secondary);max-width:440px;line-height:1.6;margin-bottom:28px}
+.suggestions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;max-width:560px}
+.sug-card{padding:12px 14px;background:var(--bg-card);border:1px solid var(--border-dim);
+  border-radius:var(--radius);cursor:pointer;text-align:left;transition:all 0.2s;
+  display:flex;flex-direction:column;gap:4px}
+.sug-card:hover{border-color:var(--border-mid);background:var(--bg-hover);transform:translateY(-2px)}
+.sug-card-icon{font-size:16px;margin-bottom:4px}
+.sug-card-title{font-size:12.5px;font-weight:600;color:var(--text-primary)}
+.sug-card-sub{font-size:11px;color:var(--text-muted)}
+
+/* ─── MESSAGES ─── */
+.messages-area{display:none;flex-direction:column;padding:0 20px;gap:16px;width:100%;max-width:900px;margin:0 auto;padding-bottom:8px}
+.messages-area.visible{display:flex}
+
+.msg-row{display:flex;gap:12px;animation:msgIn 0.3s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg-row.user{flex-direction:row-reverse}
+
+.msg-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.msg-avatar.ai{background:linear-gradient(135deg,rgba(0,212,255,0.2),rgba(168,85,247,0.2));border:1px solid var(--border-mid)}
+.msg-avatar.ai svg{width:16px;height:16px;color:var(--cyan)}
+.msg-avatar.user{background:linear-gradient(135deg,var(--purple),var(--cyan))}
+.msg-avatar.user span{font-size:12px;font-weight:600;color:#fff}
+
+.msg-body{max-width:78%;display:flex;flex-direction:column;gap:8px}
+.msg-row.user .msg-body{align-items:flex-end}
+
+.msg-bubble{padding:12px 16px;border-radius:var(--radius-lg);line-height:1.65;font-size:13.5px}
+.msg-row.ai .msg-bubble{background:var(--bg-card);border:1px solid var(--border-dim);color:var(--text-primary);border-bottom-left-radius:4px}
+.msg-row.user .msg-bubble{background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(168,85,247,0.1));
+  border:1px solid rgba(0,212,255,0.2);color:var(--text-primary);border-bottom-right-radius:4px}
+
+.msg-time{font-size:10px;font-family:var(--font-mono);color:var(--text-muted);padding:0 4px}
+
+/* ─── TOOL STATUS ─── */
+.tool-status{display:flex;flex-direction:column;gap:6px;padding:10px 14px;
+  background:rgba(0,212,255,0.04);border:1px solid var(--border-dim);border-radius:var(--radius);margin-bottom:4px}
+.tool-item{display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--font-mono)}
+.tool-item.done{color:var(--green-dim)}
+.tool-item.active{color:var(--cyan)}
+.tool-item.pending{color:var(--text-muted)}
+.tool-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.tool-item.done .tool-dot{background:var(--green)}
+.tool-item.active .tool-dot{background:var(--cyan);animation:pulse-dot 1s ease-in-out infinite}
+.tool-item.pending .tool-dot{background:var(--text-muted)}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.7)}}
+
+/* ─── SQL BLOCK ─── */
+.sql-block{background:var(--bg-void);border:1px solid var(--border-dim);border-radius:var(--radius);overflow:hidden}
+.sql-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;
+  background:rgba(0,212,255,0.04);border-bottom:1px solid var(--border-dim)}
+.sql-header-left{display:flex;align-items:center;gap:6px;font-size:10px;font-family:var(--font-mono);
+  color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
+.sql-dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);opacity:0.5}
+.copy-btn{background:transparent;border:1px solid var(--border-dim);color:var(--text-muted);
+  font-size:10px;font-family:var(--font-mono);padding:3px 8px;border-radius:5px;cursor:pointer;transition:all 0.2s}
+.copy-btn:hover{border-color:var(--border-mid);color:var(--cyan)}
+.sql-code{padding:12px 14px;font-family:var(--font-mono);font-size:12px;line-height:1.7;
+  color:#e8f4fd;white-space:pre-wrap;overflow-x:auto}
+.sql-kw{color:#7dd3fc}
+.sql-str{color:#86efac}
+.sql-fn{color:#f9a8d4}
+.sql-num{color:#fbbf24}
+.sql-cmt{color:var(--text-muted)}
+
+/* ─── TABLE RESULT ─── */
+.result-table-wrap{border:1px solid var(--border-dim);border-radius:var(--radius);overflow:hidden}
+.result-table-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;
+  background:rgba(0,212,255,0.04);border-bottom:1px solid var(--border-dim)}
+.result-table-header span{font-size:10px;font-family:var(--font-mono);color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
+.result-count{font-size:11px;font-family:var(--font-mono);color:var(--cyan);
+  background:rgba(0,212,255,0.08);border:1px solid var(--border-dim);border-radius:4px;padding:2px 8px}
+.result-table-scroll{overflow-x:auto;max-height:200px;overflow-y:auto}
+.result-table{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font-mono)}
+.result-table th{padding:8px 12px;background:rgba(0,0,0,0.3);color:var(--cyan-dim);font-weight:500;
+  text-align:left;border-bottom:1px solid var(--border-dim);white-space:nowrap;font-size:11px;letter-spacing:0.5px}
+.result-table td{padding:7px 12px;border-bottom:1px solid rgba(0,212,255,0.04);color:var(--text-secondary);white-space:nowrap}
+.result-table tr:hover td{background:rgba(0,212,255,0.04);color:var(--text-primary)}
+.result-table tr:last-child td{border-bottom:none}
+
+/* ─── CHART CARD ─── */
+.chart-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius-lg);overflow:hidden}
+.chart-card-header{padding:12px 16px;border-bottom:1px solid var(--border-dim);display:flex;align-items:center;justify-content:space-between}
+.chart-card-title{font-size:13px;font-weight:600;color:var(--text-primary)}
+.chart-card-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.chart-type-badge{font-size:9px;font-family:var(--font-mono);background:rgba(0,212,255,0.08);
+  color:var(--cyan);border:1px solid var(--border-dim);border-radius:4px;padding:3px 7px;letter-spacing:0.5px}
+.chart-body{padding:16px;position:relative;height:220px}
+.chart-body canvas{max-height:100%}
+
+/* ─── MERMAID ─── */
+.diagram-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius-lg);overflow:hidden}
+.diagram-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-dim)}
+.diagram-title{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.diagram-toggle{background:transparent;border:1px solid var(--border-dim);color:var(--text-muted);
+  font-size:10px;font-family:var(--font-mono);padding:3px 9px;border-radius:5px;cursor:pointer;transition:all 0.2s}
+.diagram-toggle:hover{border-color:var(--border-mid);color:var(--cyan)}
+.diagram-body{padding:16px;overflow:auto;transition:max-height 0.3s ease}
+.diagram-body.collapsed{max-height:0;padding:0;overflow:hidden}
+.diagram-body svg{max-width:100%;height:auto}
+
+/* ─── STATS CARDS ─── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);padding:12px 14px}
+.stat-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.stat-icon svg{width:14px;height:14px}
+.stat-value{font-size:20px;font-weight:700;font-family:var(--font-mono);color:var(--text-primary);line-height:1.1}
+.stat-label{font-size:10px;color:var(--text-muted);margin-top:3px;letter-spacing:0.5px}
+.stat-delta{font-size:10px;font-family:var(--font-mono);margin-top:4px}
+.stat-delta.up{color:var(--green)}
+.stat-delta.neutral{color:var(--cyan-dim)}
+
+/* ─── TYPING ─── */
+.typing-indicator{display:flex;align-items:center;gap:4px;padding:14px 16px;
+  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius-lg);
+  border-bottom-left-radius:4px;width:fit-content}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:typing 1.2s ease-in-out infinite}
+.typing-dot:nth-child(2){animation-delay:0.2s}
+.typing-dot:nth-child(3){animation-delay:0.4s}
+@keyframes typing{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-6px);opacity:1}}
+
+/* ─── INPUT AREA ─── */
+.input-area{padding:14px 20px 18px;border-top:1px solid var(--border-dim);
+  background:rgba(6,11,20,0.9);backdrop-filter:blur(10px);flex-shrink:0}
+.input-bar{display:flex;align-items:flex-end;gap:10px;
+  background:var(--bg-card);border:1px solid var(--border-mid);border-radius:var(--radius-lg);
+  padding:10px 14px;transition:border-color 0.2s;max-width:900px;margin:0 auto}
+.input-bar:focus-within{border-color:var(--border-bright)}
+.input-textarea{flex:1;background:transparent;border:none;outline:none;color:var(--text-primary);
+  font-size:13.5px;font-family:var(--font-ui);resize:none;min-height:22px;max-height:140px;
+  line-height:1.5;scrollbar-width:none}
+.input-textarea::placeholder{color:var(--text-muted)}
+.input-textarea::-webkit-scrollbar{display:none}
+.send-btn{width:36px;height:36px;border-radius:9px;background:var(--cyan);border:none;
+  color:var(--bg-void);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all 0.2s;align-self:flex-end}
+.send-btn:hover{background:#33ddff;transform:scale(1.05)}
+.send-btn:disabled{background:var(--bg-hover);color:var(--text-muted);cursor:default;transform:none}
+.send-btn svg{width:16px;height:16px}
+.input-footer{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 0;max-width:900px;margin:0 auto}
+.input-hint{font-size:10px;color:var(--text-muted);font-family:var(--font-mono)}
+.input-actions{display:flex;gap:6px}
+.action-pill{display:flex;align-items:center;gap:4px;padding:3px 9px;
+  background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:20px;
+  font-size:10px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;font-family:var(--font-mono)}
+.action-pill:hover{border-color:var(--border-mid);color:var(--cyan)}
+.action-pill svg{width:11px;height:11px}
+
+/* ─── SIDEBAR OVERLAY ─── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9;backdrop-filter:blur(3px)}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:768px){
+  .sidebar{position:fixed;top:0;left:0;height:100%;z-index:100;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:block}
+  .sidebar-overlay.visible{display:block}
+  .menu-btn{display:flex}
+  .suggestions{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .messages-area{padding:0 12px}
+  .input-area{padding:10px 12px 14px}
+  .topbar{padding:10px 14px}
+  .topbar-title{font-size:13px}
+}
+@media(max-width:420px){
+  .stats-grid{grid-template-columns:1fr}
+  .msg-body{max-width:90%}
+  .welcome h2{font-size:19px}
+  .suggestions{display:none}
+}
+
+/* ─── LOADING SPINNER ─── */
+.spinner{width:14px;height:14px;border:2px solid var(--border-mid);border-top-color:var(--cyan);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--bg-card);border:1px solid var(--border-mid);color:var(--cyan);
+  font-size:12px;font-family:var(--font-mono);padding:8px 16px;border-radius:20px;
+  opacity:0;transition:all 0.3s;z-index:999;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ─── SCROLLBAR within chat ─── */
+.chat-wrap::-webkit-scrollbar{width:3px}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-pulse">
+  <div class="pulse-line"></div>
+  <div class="pulse-line"></div>
+  <div class="pulse-line"></div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+
+<!-- ─── SIDEBAR ─── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo-row">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--cyan)">
+          <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 9v4c0 1.66 4.03 3 9 3s9-1.34 9-3V9"/><path d="M3 13v4c0 1.66 4.03 3 9 3s9-1.34 9-3v-4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name">AI Database Agent</div>
+        <div class="logo-sub">Data Intelligence Platform</div>
+      </div>
+    </div>
+    <span class="version-badge">v2.4.1 · hackathon</span>
+  </div>
+
+  <button class="btn-new" onclick="newChat()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New Analysis
+  </button>
+
+  <div class="sidebar-section">Recent Chats</div>
+  <div class="chat-list" id="chatList">
+    <div class="chat-item active" onclick="loadChat(0)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="chat-item-text">Revenue by region Q4</span>
+      <span class="chat-item-time">now</span>
+    </div>
+    <div class="chat-item" onclick="loadChat(1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="chat-item-text">Top customers by sales</span>
+      <span class="chat-item-time">2h</span>
+    </div>
+    <div class="chat-item" onclick="loadChat(2)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="chat-item-text">Monthly churn analysis</span>
+      <span class="chat-item-time">1d</span>
+    </div>
+    <div class="chat-item" onclick="loadChat(3)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="chat-item-text">Schema ER diagram</span>
+      <span class="chat-item-time">3d</span>
+    </div>
+    <div class="chat-item" onclick="loadChat(4)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="chat-item-text">Inventory stock levels</span>
+      <span class="chat-item-time">5d</span>
+    </div>
+  </div>
+
+  <div class="db-status">
+    <div class="db-status-header">
+      <span class="db-label">Database</span>
+      <div class="db-status-dot" id="dbDot"></div>
+    </div>
+    <div class="db-name" id="dbName">postgresql://prod-db:5432</div>
+    <div class="db-meta">
+      <span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        12 tables
+      </span>
+      <span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        14ms
+      </span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="footer-row">
+      <div class="avatar">NK</div>
+      <div>
+        <div class="user-name">Naveen Kumar</div>
+        <div class="user-role">Admin · CSE Hackathon</div>
+      </div>
+      <button class="topbar-btn" style="margin-left:auto" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── MAIN ─── -->
+<div class="main">
+  <div class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="topbar-title" id="chatTitleBar">New Analysis</span>
+    <span class="topbar-model">claude-sonnet-4-6 · sql-agent</span>
+    <div class="topbar-right">
+      <button class="topbar-btn" title="Export" onclick="showToast('Exported to CSV')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <button class="topbar-btn" title="Share" onclick="showToast('Share link copied!')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
+      <button class="topbar-btn" title="Clear chat" onclick="clearChat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="chat-wrap" id="chatWrap">
+    <!-- WELCOME -->
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 9v4c0 1.66 4.03 3 9 3s9-1.34 9-3V9"/><path d="M3 13v4c0 1.66 4.03 3 9 3s9-1.34 9-3v-4"/>
+        </svg>
+      </div>
+      <h2>Ask anything about your data</h2>
+      <p>Type a question in plain English — I'll write the SQL, run it, visualize the results, and explain what I found.</p>
+      <div class="suggestions">
+        <div class="sug-card" onclick="sendSuggestion('Show me revenue by region for Q4 2024 as a bar chart')">
+          <div class="sug-card-icon">📊</div>
+          <div class="sug-card-title">Revenue by Region</div>
+          <div class="sug-card-sub">Bar chart · Q4 2024</div>
+        </div>
+        <div class="sug-card" onclick="sendSuggestion('Who are the top 10 customers by total purchase amount?')">
+          <div class="sug-card-icon">🏆</div>
+          <div class="sug-card-title">Top Customers</div>
+          <div class="sug-card-sub">Ranked table · all time</div>
+        </div>
+        <div class="sug-card" onclick="sendSuggestion('Show me the database ER diagram')">
+          <div class="sug-card-icon">🗺️</div>
+          <div class="sug-card-title">ER Diagram</div>
+          <div class="sug-card-sub">Schema visualization</div>
+        </div>
+        <div class="sug-card" onclick="sendSuggestion('What are the monthly sales trends for the past year?')">
+          <div class="sug-card-icon">📈</div>
+          <div class="sug-card-title">Sales Trends</div>
+          <div class="sug-card-sub">Line chart · 12 months</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="messages-area" id="messagesArea"></div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-bar">
+      <textarea class="input-textarea" id="inputBox" placeholder="Ask a question about your database..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="handleSend()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="input-footer">
+      <span class="input-hint">Enter to send · Shift+Enter for new line</span>
+      <div class="input-actions">
+        <div class="action-pill" onclick="sendSuggestion('Show me the database schema')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>Schema
+        </div>
+        <div class="action-pill" onclick="sendSuggestion('Run a performance analysis on the slowest queries')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Perf
+        </div>
+        <div class="action-pill" onclick="sendSuggestion('Show me all tables and their row counts')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Tables
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ─── MERMAID INIT ───
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    background: '#0d1a2e',
+    primaryColor: '#162440',
+    primaryTextColor: '#e8f4fd',
+    primaryBorderColor: '#00d4ff33',
+    lineColor: '#00d4ff',
+    secondaryColor: '#111e33',
+    tertiaryColor: '#0a1220',
+    edgeLabelBackground: '#0d1a2e',
+    clusterBkg: '#111e33'
+  }
+});
+
+// ─── STATE ───
+let isProcessing = false;
+let chartInstances = {};
+let chartIdCounter = 0;
+let sidebarOpen = false;
+
+// ─── RESPONSES ───
+const RESPONSES = {
+  default: {
+    query: "Show me revenue by region for Q4 2024 as a bar chart",
+    tools: ['Getting Schema...', 'Generating SQL...', 'Executing Query...', 'Creating Chart...', 'Explaining Results...'],
+    sql: `<span class="sql-kw">SELECT</span>
+  r.region_name,
+  <span class="sql-fn">SUM</span>(o.total_amount) <span class="sql-kw">AS</span> revenue,
+  <span class="sql-fn">COUNT</span>(o.id) <span class="sql-kw">AS</span> order_count
+<span class="sql-kw">FROM</span> orders o
+<span class="sql-kw">JOIN</span> regions r <span class="sql-kw">ON</span> o.region_id = r.id
+<span class="sql-kw">WHERE</span>
+  o.created_at <span class="sql-kw">BETWEEN</span> <span class="sql-str">'2024-10-01'</span>
+               <span class="sql-kw">AND</span> <span class="sql-str">'2024-12-31'</span>
+  <span class="sql-kw">AND</span> o.status = <span class="sql-str">'completed'</span>
+<span class="sql-kw">GROUP BY</span> r.region_name
+<span class="sql-kw">ORDER BY</span> revenue <span class="sql-kw">DESC</span>;`,
+    tableHeaders: ['Region', 'Revenue', 'Orders', 'Avg Order'],
+    tableRows: [
+      ['North America', '$2,847,320', '8,432', '$337.73'],
+      ['Europe', '$1,923,100', '5,891', '$326.44'],
+      ['Asia Pacific', '$1,544,280', '6,102', '$253.07'],
+      ['Latin America', '$892,450', '3,218', '$277.33'],
+      ['Middle East', '$634,920', '1,844', '$344.32'],
+      ['Africa', '$312,780', '1,021', '$306.35']
+    ],
+    chartType: 'bar',
+    chartTitle: 'Q4 2024 Revenue by Region',
+    chartSub: 'Total revenue per region · Oct–Dec 2024',
+    chartLabels: ['N. America', 'Europe', 'Asia Pac.', 'Latam', 'ME', 'Africa'],
+    chartData: [2847320, 1923100, 1544280, 892450, 634920, 312780],
+    explanation: `North America leads Q4 revenue at **$2.85M** — 38% of total. Europe is a strong second at **$1.92M**. Asia Pacific shows the highest order volume (6,102) with lower average order values, suggesting a high-frequency, lower-ticket market.\n\nCombined global revenue: **$8.15M** across 26,508 orders. Average order value globally: **$307.45**.`,
+    stats: [
+      { label: 'Total Records', value: '26,508', icon: 'table', delta: '+12.3% QoQ', up: true, color: '#00d4ff' },
+      { label: 'Tables Queried', value: '2', icon: 'db', delta: 'orders, regions', up: null, color: '#a855f7' },
+      { label: 'Exec Time', value: '14ms', icon: 'clock', delta: 'Optimized', up: null, color: '#00ff88' },
+      { label: 'DB Status', value: 'Live', icon: 'dot', delta: '99.9% uptime', up: true, color: '#00ff88' }
+    ]
+  },
+  er: {
+    query: "Show me the database ER diagram",
+    tools: ['Getting Schema...', 'Generating Diagram...', 'Explaining Results...'],
+    explanation: `Here is the ER diagram for your PostgreSQL database. It shows **12 tables** across 4 logical domains:\n\n• **Commerce**: orders, order_items, products, categories\n• **Users**: customers, addresses\n• **Fulfillment**: shipments, warehouses\n• **Finance**: payments, invoices, regions`,
+    mermaid: `erDiagram
+    CUSTOMERS {
+        int id PK
+        string name
+        string email
+        int address_id FK
+    }
+    ORDERS {
+        int id PK
+        int customer_id FK
+        int region_id FK
+        decimal total_amount
+        string status
+        timestamp created_at
+    }
+    ORDER_ITEMS {
+        int id PK
+        int order_id FK
+        int product_id FK
+        int quantity
+        decimal unit_price
+    }
+    PRODUCTS {
+        int id PK
+        string name
+        int category_id FK
+        decimal price
+        int stock
+    }
+    REGIONS {
+        int id PK
+        string region_name
+        string country_code
+    }
+    PAYMENTS {
+        int id PK
+        int order_id FK
+        decimal amount
+        string method
+        string status
+    }
+    CUSTOMERS ||--o{ ORDERS : "places"
+    ORDERS ||--|{ ORDER_ITEMS : "contains"
+    ORDER_ITEMS }|--|| PRODUCTS : "references"
+    ORDERS }|--|| REGIONS : "belongs to"
+    ORDERS ||--o{ PAYMENTS : "paid via"`,
+    stats: [
+      { label: 'Total Tables', value: '12', icon: 'table', delta: '6 shown', up: null, color: '#00d4ff' },
+      { label: 'Relationships', value: '5', icon: 'link', delta: 'FK constraints', up: null, color: '#a855f7' },
+      { label: 'Total Columns', value: '48', icon: 'list', delta: 'across 6 tables', up: null, color: '#ffaa00' },
+      { label: 'DB Status', value: 'Live', icon: 'dot', delta: '99.9% uptime', up: true, color: '#00ff88' }
+    ]
+  },
+  trends: {
+    query: "What are the monthly sales trends for the past year?",
+    tools: ['Getting Schema...', 'Generating SQL...', 'Executing Query...', 'Creating Chart...', 'Explaining Results...'],
+    sql: `<span class="sql-kw">SELECT</span>
+  <span class="sql-fn">DATE_TRUNC</span>(<span class="sql-str">'month'</span>, created_at) <span class="sql-kw">AS</span> month,
+  <span class="sql-fn">SUM</span>(total_amount) <span class="sql-kw">AS</span> revenue,
+  <span class="sql-fn">COUNT</span>(*) <span class="sql-kw">AS</span> orders
+<span class="sql-kw">FROM</span> orders
+<span class="sql-kw">WHERE</span>
+  created_at >= <span class="sql-fn">NOW</span>() - <span class="sql-kw">INTERVAL</span> <span class="sql-str">'12 months'</span>
+  <span class="sql-kw">AND</span> status = <span class="sql-str">'completed'</span>
+<span class="sql-kw">GROUP BY</span> month
+<span class="sql-kw">ORDER BY</span> month <span class="sql-kw">ASC</span>;`,
+    chartType: 'line',
+    chartTitle: 'Monthly Revenue Trend',
+    chartSub: 'Last 12 months · completed orders',
+    chartLabels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    chartData: [1.2,1.4,1.1,1.6,1.8,2.1,1.9,2.3,2.0,2.8,3.1,2.85],
+    explanation: `Sales show a clear **upward trend** over the year, with notable peaks in **November** ($3.1M) driven by seasonal campaigns. The dip in March is typical for post-Q1 slowdown.\n\nYear-over-year growth: **+31.4%**. The trend suggests strong momentum heading into the new year.`,
+    stats: [
+      { label: 'Peak Month', value: 'Nov', icon: 'chart', delta: '$3.1M revenue', up: true, color: '#00d4ff' },
+      { label: 'YoY Growth', value: '+31%', icon: 'up', delta: 'vs last year', up: true, color: '#00ff88' },
+      { label: 'Avg Monthly', value: '$2.1M', icon: 'avg', delta: 'last 12 months', up: null, color: '#a855f7' },
+      { label: 'DB Status', value: 'Live', icon: 'dot', delta: '99.9% uptime', up: true, color: '#00ff88' }
+    ]
+  },
+  customers: {
+    query: "Who are the top 10 customers by total purchase amount?",
+    tools: ['Getting Schema...', 'Generating SQL...', 'Executing Query...', 'Explaining Results...'],
+    sql: `<span class="sql-kw">SELECT</span>
+  c.name,
+  c.email,
+  <span class="sql-fn">SUM</span>(o.total_amount) <span class="sql-kw">AS</span> lifetime_value,
+  <span class="sql-fn">COUNT</span>(o.id) <span class="sql-kw">AS</span> total_orders,
+  <span class="sql-fn">MAX</span>(o.created_at) <span class="sql-kw">AS</span> last_order
+<span class="sql-kw">FROM</span> customers c
+<span class="sql-kw">JOIN</span> orders o <span class="sql-kw">ON</span> o.customer_id = c.id
+<span class="sql-kw">WHERE</span> o.status = <span class="sql-str">'completed'</span>
+<span class="sql-kw">GROUP BY</span> c.id, c.name, c.email
+<span class="sql-kw">ORDER BY</span> lifetime_value <span class="sql-kw">DESC</span>
+<span class="sql-kw">LIMIT</span> <span class="sql-num">10</span>;`,
+    tableHeaders: ['Customer', 'Email', 'Lifetime Value', 'Orders', 'Last Order'],
+    tableRows: [
+      ['Acme Corp', 'billing@acme.com', '$284,320', '142', '2024-12-18'],
+      ['TechSolutions Ltd', 'accounts@techsol.io', '$231,840', '98', '2024-12-20'],
+      ['GlobalTrade Inc', 'finance@globaltrade.net', '$198,450', '87', '2024-12-15'],
+      ['Nexus Partners', 'ap@nexuspartners.co', '$176,230', '63', '2024-12-19'],
+      ['Vertex Systems', 'purchasing@vertex.com', '$162,910', '71', '2024-12-17'],
+      ['Apex Retail Group', 'orders@apexretail.com', '$154,780', '59', '2024-12-21'],
+      ['Orion Dynamics', 'billing@oriondyn.io', '$143,290', '54', '2024-12-14'],
+      ['CoreLogic Co', 'finance@corelogic.io', '$138,450', '48', '2024-12-11'],
+      ['Summit Enterprises', 'ap@summit-e.com', '$127,600', '43', '2024-12-09'],
+      ['Pinnacle Group', 'accounting@pinnacle.net', '$118,330', '38', '2024-12-07']
+    ],
+    explanation: `Top 10 customers account for **$1.73M** — roughly **21% of total revenue**. Acme Corp leads with $284K across 142 orders — their high frequency suggests a strong replenishment or subscription pattern.\n\nChurn risk: none of the top 10 has gone more than 14 days without an order.`,
+    stats: [
+      { label: 'Total Customers', value: '8,432', icon: 'users', delta: '+340 new this month', up: true, color: '#00d4ff' },
+      { label: 'Top 10 Share', value: '21%', icon: 'pie', delta: 'of total revenue', up: null, color: '#a855f7' },
+      { label: 'Avg LTV', value: '$173K', icon: 'avg', delta: 'top 10 only', up: null, color: '#ffaa00' },
+      { label: 'DB Status', value: 'Live', icon: 'dot', delta: '99.9% uptime', up: true, color: '#00ff88' }
+    ]
+  }
+};
+
+function getResponseFor(query) {
+  // No longer used, handled by backend
+  return RESPONSES.default;
+}
+
+// ─── SIDEBAR ───
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
+  document.getElementById('overlay').classList.toggle('visible', sidebarOpen);
+}
+function closeSidebar() {
+  sidebarOpen = false;
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('visible');
+}
+
+// ─── CHAT LOADING ───
+function loadChat(idx) {
+  document.querySelectorAll('.chat-item').forEach((el,i) => el.classList.toggle('active', i === idx));
+  closeSidebar();
+}
+
+// ─── NEW CHAT ───
+function newChat() {
+  document.getElementById('welcome').style.display = 'flex';
+  const ma = document.getElementById('messagesArea');
+  ma.innerHTML = '';
+  ma.classList.remove('visible');
+  document.getElementById('chatTitleBar').textContent = 'New Analysis';
+  Object.values(chartInstances).forEach(c => c.destroy());
+  chartInstances = {};
+  closeSidebar();
+}
+function clearChat() { newChat(); }
+
+// ─── TOAST ───
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── INPUT ───
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+function handleSend() {
+  const box = document.getElementById('inputBox');
+  const q = box.value.trim();
+  if (!q || isProcessing) return;
+  box.value = '';
+  box.style.height = 'auto';
+  startChat(q);
+}
+function sendSuggestion(q) {
+  if (isProcessing) return;
+  startChat(q);
+}
+
+// ─── MAIN CHAT FLOW ───
+async function startChat(query) {
+  isProcessing = true;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('welcome').style.display = 'none';
+  const ma = document.getElementById('messagesArea');
+  ma.classList.add('visible');
+  document.getElementById('chatTitleBar').textContent = query.length > 40 ? query.slice(0,40) + '…' : query;
+
+  addUserMessage(query);
+  const aiRow = addAIRow();
+  
+  try {
+    const req = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: query })
+    });
+    const data = await req.json();
+    
+    // Map backend response format to frontend UI format
+    const response = {
+      tools: ['Analyzing Request...', 'Generating SQL...', 'Executing Query...', 'Explaining Results...'],
+      sql: data.sql ? data.sql : null,
+      explanation: data.explanation || (data.error ? `<span style="color:red">Error: ${data.error}</span>` : (data.detail ? `<span style="color:red">Server Error: ${data.detail}</span>` : 'Done.')),
+      mermaid: data.mermaid,
+      tableHeaders: data.table ? data.table.columns : null,
+      tableRows: data.table ? data.table.rows : null,
+      chartType: data.chart ? data.chart.type : null,
+      chartTitle: data.chart ? data.chart.title : null,
+      chartSub: 'Generated by AI',
+      chartLabels: data.chart ? data.chart.labels : null,
+      chartData: data.chart ? data.chart.data : null,
+      stats: data.stats ? [
+        { label: 'Total Records', value: data.stats.total_rows, icon: 'table', delta: 'across ' + data.stats.tables + ' tables', up: null, color: '#00d4ff' },
+        { label: 'Exec Time', value: data.stats.exec_time_ms + 'ms', icon: 'clock', delta: 'Query time', up: null, color: '#00ff88' },
+        { label: 'DB Status', value: 'Live', icon: 'dot', delta: 'SQLite', up: true, color: '#a855f7' }
+      ] : []
+    };
+    
+    if (data.error) {
+      response.tools = ['Analyzing Request...', 'Error occurred'];
+    }
+
+    runTools(response.tools, aiRow, response);
+  } catch (e) {
+    const errResp = {
+      tools: ['Failed to connect to backend'],
+      explanation: `<span style="color:red">Network Error: ${e.message}</span>`
+    };
+    runTools(errResp.tools, aiRow, errResp);
+  }
+}
+
+function addUserMessage(text) {
+  const ma = document.getElementById('messagesArea');
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `
+    <div class="msg-avatar user"><span>NK</span></div>
+    <div class="msg-body">
+      <div class="msg-bubble">${escHtml(text)}</div>
+      <div class="msg-time">${now()}</div>
+    </div>`;
+  ma.appendChild(row);
+  scrollDown();
+}
+
+function addAIRow() {
+  const ma = document.getElementById('messagesArea');
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  row.innerHTML = `
+    <div class="msg-avatar ai">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 9v4c0 1.66 4.03 3 9 3s9-1.34 9-3V9"/><path d="M3 13v4c0 1.66 4.03 3 9 3s9-1.34 9-3v-4"/></svg>
+    </div>
+    <div class="msg-body" id="aiBody_${Date.now()}">
+      <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+    </div>`;
+  ma.appendChild(row);
+  scrollDown();
+  return row.querySelector('.msg-body');
+}
+
+function runTools(tools, aiBody, response) {
+  if (!tools.length) { buildResponse(aiBody, response); return; }
+  const toolBox = document.createElement('div');
+  toolBox.className = 'tool-status';
+  tools.forEach((t,i) => {
+    const el = document.createElement('div');
+    el.className = 'tool-item ' + (i === 0 ? 'active' : 'pending');
+    el.id = 'tool_' + i + '_' + Date.now();
+    el.innerHTML = `<div class="tool-dot"></div><span>${t}</span>`;
+    toolBox.appendChild(el);
+  });
+  aiBody.querySelector('.typing-indicator').replaceWith(toolBox);
+  scrollDown();
+
+  const items = toolBox.querySelectorAll('.tool-item');
+  let idx = 0;
+  const interval = setInterval(() => {
+    if (idx > 0) items[idx-1].className = 'tool-item done';
+    if (idx < items.length) {
+      items[idx].className = 'tool-item active';
+      idx++;
+      scrollDown();
+    } else {
+      clearInterval(interval);
+      setTimeout(() => buildResponse(aiBody, response, toolBox), 400);
+    }
+  }, 680);
+}
+
+function buildResponse(aiBody, response, toolBox) {
+  const typing = aiBody.querySelector('.typing-indicator');
+  if (typing) typing.remove();
+
+  const parts = [];
+
+  // Stats
+  if (response.stats) parts.push(buildStats(response.stats));
+
+  // SQL
+  if (response.sql) parts.push(buildSQL(response.sql));
+
+  // Table
+  if (response.tableHeaders) parts.push(buildTable(response.tableHeaders, response.tableRows));
+
+  // Chart
+  if (response.chartType) parts.push(buildChartCard(response));
+
+  // Mermaid
+  if (response.mermaid) parts.push(buildMermaidCard(response.mermaid));
+
+  // Explanation bubble
+  if (response.explanation) {
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = formatExplanation(response.explanation);
+    parts.push(bubble);
+  }
+
+  parts.push((() => { const t = document.createElement('div'); t.className = 'msg-time'; t.textContent = now(); return t; })());
+
+  parts.forEach(p => aiBody.appendChild(p));
+
+  isProcessing = false;
+  document.getElementById('sendBtn').disabled = false;
+  scrollDown();
+
+  // Render mermaid diagrams
+  setTimeout(() => {
+    document.querySelectorAll('.mermaid-src').forEach(async (el) => {
+      const src = el.textContent;
+      const target = el.nextElementSibling;
+      if (!target) return;
+      try {
+        const id = 'mmd_' + Math.random().toString(36).substr(2,8);
+        const { svg } = await mermaid.render(id, src);
+        target.innerHTML = svg;
+      } catch(e) { target.innerHTML = `<span style="color:var(--red);font-size:12px;font-family:var(--font-mono)">Diagram render error</span>`; }
+    });
+  }, 200);
+}
+
+// ─── BUILDERS ───
+function buildStats(stats) {
+  const iconSVGs = {
+    table: `<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 9v4c0 1.66 4.03 3 9 3s9-1.34 9-3V9"/><path d="M3 13v4c0 1.66 4.03 3 9 3s9-1.34 9-3v-4"/>`,
+    db: `<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 9v14"/>`,
+    clock: `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,
+    dot: `<circle cx="12" cy="12" r="4"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 4.93l-1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 19.07l-1.41-1.41"/>`,
+    chart: `<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>`,
+    up: `<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>`,
+    avg: `<line x1="5" y1="12" x2="19" y2="12"/><circle cx="12" cy="12" r="3"/>`,
+    users: `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
+    pie: `<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>`,
+    list: `<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>`,
+    link: `<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`
+  };
+  const wrap = document.createElement('div');
+  wrap.className = 'stats-grid';
+  stats.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.innerHTML = `
+      <div class="stat-icon" style="background:${s.color}18;border:1px solid ${s.color}30">
+        <svg viewBox="0 0 24 24" fill="none" stroke="${s.color}" stroke-width="1.8" width="14" height="14"><path d="${iconSVGs[s.icon] || ''}"/>${(iconSVGs[s.icon]||'').includes('<') ? '' : `<path d="${iconSVGs[s.icon]||''}" />`}</svg>
+      </div>
+      <div class="stat-value" style="color:${s.color}">${s.value}</div>
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-delta ${s.up === true ? 'up' : 'neutral'}">${s.delta}</div>`;
+    // Fix: render icon properly
+    card.querySelector('.stat-icon').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="${s.color}" stroke-width="1.8" width="14" height="14">${iconSVGs[s.icon] || ''}</svg>`;
+    wrap.appendChild(card);
+  });
+  return wrap;
+}
+
+function buildSQL(sql) {
+  const wrap = document.createElement('div');
+  wrap.className = 'sql-block';
+  wrap.innerHTML = `
+    <div class="sql-header">
+      <div class="sql-header-left"><div class="sql-dot"></div>SQL Query</div>
+      <button class="copy-btn" onclick="copySQL(this)">Copy</button>
+    </div>
+    <div class="sql-code">${sql}</div>`;
+  return wrap;
+}
+
+function buildTable(headers, rows) {
+  const wrap = document.createElement('div');
+  wrap.className = 'result-table-wrap';
+  let ths = headers.map(h => `<th>${h}</th>`).join('');
+  let trs = rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+  wrap.innerHTML = `
+    <div class="result-table-header">
+      <span>Query Results</span>
+      <span class="result-count">${rows.length} rows</span>
+    </div>
+    <div class="result-table-scroll">
+      <table class="result-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>
+    </div>`;
+  return wrap;
+}
+
+function buildChartCard(response) {
+  const id = 'chart_' + (++chartIdCounter);
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-card';
+  wrap.innerHTML = `
+    <div class="chart-card-header">
+      <div>
+        <div class="chart-card-title">${response.chartTitle}</div>
+        <div class="chart-card-sub">${response.chartSub}</div>
+      </div>
+      <span class="chart-type-badge">${response.chartType.toUpperCase()}</span>
+    </div>
+    <div class="chart-body"><canvas id="${id}"></canvas></div>`;
+  
+  // Defer chart creation until DOM is attached
+  setTimeout(() => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const isLine = response.chartType === 'line';
+    const isPie = response.chartType === 'pie';
+    const colors = ['#00d4ff','#a855f7','#00ff88','#ffaa00','#ff4466','#7dd3fc'];
+    const data = response.chartData;
+
+    if (chartInstances[id]) chartInstances[id].destroy();
+    chartInstances[id] = new Chart(ctx, {
+      type: response.chartType,
+      data: {
+        labels: response.chartLabels,
+        datasets: [{
+          label: response.chartTitle,
+          data: data,
+          backgroundColor: isPie ? colors : isLine ? 'rgba(0,212,255,0.08)' : colors.map((c,i) => i === 0 ? '#00d4ff' : '#1a3a5c'),
+          borderColor: isLine ? '#00d4ff' : isPie ? colors : '#00d4ff44',
+          borderWidth: isLine ? 2 : 1,
+          fill: isLine,
+          tension: 0.4,
+          pointBackgroundColor: '#00d4ff',
+          pointRadius: isLine ? 4 : 0,
+          borderRadius: isLine || isPie ? 0 : 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: isPie, labels: { color: '#7a9bb5', font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 12 } },
+          tooltip: {
+            backgroundColor: '#111e33', borderColor: '#00d4ff33', borderWidth: 1,
+            titleColor: '#e8f4fd', bodyColor: '#7a9bb5',
+            titleFont: { family: 'JetBrains Mono', size: 11 },
+            bodyFont: { family: 'JetBrains Mono', size: 11 },
+            callbacks: {
+              label: (ctx) => isLine ? ` $${ctx.parsed.y.toFixed(1)}M` : ` $${(ctx.parsed.y/1000000).toFixed(2)}M`
+            }
+          }
+        },
+        scales: isPie ? {} : {
+          x: { grid: { color: 'rgba(0,212,255,0.04)' }, ticks: { color: '#7a9bb5', font: { family: 'JetBrains Mono', size: 10 } } },
+          y: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { color: '#7a9bb5', font: { family: 'JetBrains Mono', size: 10 },
+            callback: (v) => isLine ? `$${v}M` : `$${(v/1e6).toFixed(1)}M` } }
+        }
+      }
+    });
+  }, 100);
+  return wrap;
+}
+
+function buildMermaidCard(src) {
+  const wrap = document.createElement('div');
+  wrap.className = 'diagram-card';
+  let expanded = true;
+  wrap.innerHTML = `
+    <div class="diagram-header">
+      <span class="diagram-title">ER Diagram · Database Schema</span>
+      <button class="diagram-toggle" id="diag-toggle">Collapse</button>
+    </div>
+    <div class="diagram-body" id="diag-body">
+      <pre class="mermaid-src" style="display:none">${src}</pre>
+      <div class="mermaid-render"></div>
+    </div>`;
+  setTimeout(() => {
+    const btn = wrap.querySelector('#diag-toggle');
+    const body = wrap.querySelector('#diag-body');
+    btn.addEventListener('click', () => {
+      expanded = !expanded;
+      body.classList.toggle('collapsed', !expanded);
+      btn.textContent = expanded ? 'Collapse' : 'Expand';
+    });
+  }, 50);
+  return wrap;
+}
+
+function formatExplanation(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--cyan)">$1</strong>').replace(/\n/g, '<br>');
+}
+
+function copySQL(btn) {
+  const code = btn.closest('.sql-block').querySelector('.sql-code');
+  navigator.clipboard.writeText(code.innerText).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1600);
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function now() {
+  return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+function scrollDown() {
+  const w = document.getElementById('chatWrap');
+  requestAnimationFrame(() => w.scrollTop = w.scrollHeight);
+}
+
+// ─── DEMO ON LOAD ───
+window.addEventListener('load', () => {
+  setTimeout(() => sendSuggestion('Show me revenue by region for Q4 2024 as a bar chart'), 800);
+});
+</script>
+</body>
+</html>
